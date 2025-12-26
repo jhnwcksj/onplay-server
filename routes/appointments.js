@@ -327,9 +327,8 @@ router.put('/appointments/:id', async (req, res) => {
     const {
       branch_id,
       zone_ids,
-      date,          // строка в формате DD.MM.YYYY
-      time_from,     // HH:MM
-      time_to,       // HH:MM
+      start_time,    // ISO-строка TIMESTAMPTZ
+      end_time,      // ISO-строка TIMESTAMPTZ
       service_id,
       participants,
       quantity,
@@ -349,8 +348,8 @@ router.put('/appointments/:id', async (req, res) => {
     if (!branch_id || !Array.isArray(zone_ids) || zone_ids.length === 0) {
       return res.status(400).json({ error: 'branch_id и zone_ids обязательны' });
     }
-    if (!date || !time_from || !time_to) {
-      return res.status(400).json({ error: 'date, time_from и time_to обязательны' });
+    if (!start_time || !end_time) {
+      return res.status(400).json({ error: 'start_time и end_time обязательны (TIMESTAMPTZ)' });
     }
     // Поддерживаем старый формат (одна услуга через service_id)
     // и новый формат (массив services). Должно быть указано хотя бы что-то одно.
@@ -358,11 +357,11 @@ router.put('/appointments/:id', async (req, res) => {
       return res.status(400).json({ error: 'service_id или services обязательны' });
     }
 
-    const startDateTime = parseDateTime(date, time_from);
-    const endDateTime = parseDateTime(date, time_to);
+    const startDateTime = new Date(start_time);
+    const endDateTime = new Date(end_time);
 
-    if (!startDateTime || !endDateTime) {
-      return res.status(400).json({ error: 'Неверный формат даты или времени' });
+    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+      return res.status(400).json({ error: 'Неверный формат start_time или end_time' });
     }
 
     const durationMinutes = Math.max(1, Math.round((endDateTime.getTime() - startDateTime.getTime()) / 60000));
